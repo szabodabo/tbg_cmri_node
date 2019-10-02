@@ -76,7 +76,7 @@ void setup() {
 void loop() {
   //cmri.process();
 
-  bool flipflop_counter = (millis() / 1000) % 2 == 0;
+  bool flipflop_counter = (millis() / 5) % 2 == 0;
   if (flipflop_counter == hacky_last_state) {
     return;
   }
