@@ -42,22 +42,21 @@
 #define LEDOUT_BLANK_PIN A1 // PC1
 #define LEDOUT_XLAT_PIN A0 // PC0
 #define LEDOUT_MOSI_PIN 11 // PB3
+#define LEDOUT_BITS 24
 
 #define SR_LOAD_PIN A2 // PC2
 #define SR_MISO_PIN 12 // PB4
 
 #define NUM_SHIFT_REGISTERS 3
 
-// test U2 outputs
-
 Adafruit_TLC5947 ledout(1, SCK_PIN, LEDOUT_MOSI_PIN, LEDOUT_XLAT_PIN);
 Auto485 bus(CMRI_TX_ENABLE_PIN);
 CMRI cmri(/*address=*/CMRI_ADDRESS,
           /*input_bits=*/24,
-          /*output_bits=*/24,
+          /*output_bits=*/LEDOUT_BITS,
           bus); // defaults to a SMINI with address 0. SMINI = 24 inputs, 48 outputs
 
-bool hacky_last_state = true;
+bool out_bit_cache[LEDOUT_BITS];
 
 void setup() {
   pinMode(CMRI_TX_ENABLE_PIN, OUTPUT);
@@ -70,45 +69,34 @@ void setup() {
 
   ledout.begin();
   digitalWrite(LEDOUT_BLANK_PIN, 0);
-  //bus.begin(28800, SERIAL_8N2); // make sure this matches your speed set in JMRI
+  bus.begin(28800, SERIAL_8N2); // make sure this matches your speed set in JMRI
 }
 
 void loop() {
-  //cmri.process();
-
-  bool flipflop_counter = (millis() / 5) % 2 == 0;
-  if (flipflop_counter == hacky_last_state) {
-    return;
-  }
+  cmri.process();
 
   digitalWrite(SR_LOAD_PIN, LOW);
   delayMicroseconds(100);
   digitalWrite(SR_LOAD_PIN, HIGH);
   delayMicroseconds(100);
 
-  bool ledOn = true;
-
   for (int sr_idx = 0; sr_idx < NUM_SHIFT_REGISTERS; sr_idx++) {
     byte sr_data = shiftIn(SR_MISO_PIN, SCK_PIN, MSBFIRST);
     cmri.set_byte(sr_idx, sr_data);
-//    for (int i = 0; i < 8; i++) {
-//      if (bitRead(sr_data, i) == 0) {
-//        ledOn = false;
-//      }
-//    }
   }
 
-  // update input. Flips a bit back and forth every second
-  //cmri.set_bit(0, do_thing);
-
-  for (int led = 0; led < 23; led++) {
-    ledout.setPWM(led, cmri.get_bit(led) ? 4090 : 0);
+  bool rewrite_leds = false;
+  for (int led = 0; led < LEDOUT_BITS; led++) {
+    if (out_bit_cache[led] != cmri.get_bit(led)) {
+      out_bit_cache[led] = cmri.get_bit(led);
+      rewrite_leds = true;
+    }
   }
 
-  ledout.write();
-  //digitalWrite(CMRI_TX_ENABLE_PIN, do_thing);
-  hacky_last_state = flipflop_counter;
-  
-  // 2: update output. Reads bit 0 of T packet and sets the LED to this
-  //digitalWrite(13, cmri.get_bit(0));
+  if (rewrite_leds) {
+    for (int led = 0; led < LEDOUT_BITS; led++) {
+      ledout.setPWM(led, out_bit_cache[led] ? 4090 : 0);
+    }
+    ledout.write();
+  }
 }
