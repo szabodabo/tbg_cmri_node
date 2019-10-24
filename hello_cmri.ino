@@ -63,10 +63,10 @@ bool is_special_flashing_led(int led) {
 //#define DEBUG_BUTTON_PULSES
 
 // Turn on all LEDs when any button is pressed.
-#define DEBUG_BUTTON_ALLON
+//#define DEBUG_BUTTON_ALLON
 
 // On startup, iterate through all LEDs.
-#define STARTUP_CYCLE_LEDs
+//#define STARTUP_CYCLE_LEDs
 
 #if defined(DEBUG_BUTTON_PULSES) || defined(DEBUG_BUTTON_ALLON)
   #define SKIP_CMRI_FOR_TESTING
@@ -94,6 +94,10 @@ void setup() {
   allLEDsOff();
   digitalWrite(LEDOUT_BLANK_PIN, 0);
 
+  allLEDsOn();
+  delay(1000);
+  allLEDsOff();
+
   #ifdef STARTUP_CYCLE_LEDs
   for (int i = 0; i < LEDOUT_BITS; i++) {
     ledout.setPWM(i, 4000);
@@ -105,9 +109,9 @@ void setup() {
   }
   #endif
 
-  #ifndef SKIP_CMRI_FOR_TESTING
+  //#ifndef SKIP_CMRI_FOR_TESTING
   bus.begin(28800, SERIAL_8N2); // make sure this matches your speed set in JMRI
-  #endif
+  //#endif
 }
 
 void allLEDsOff() {
@@ -173,9 +177,10 @@ void readButtons(bool* out) {
 }
 
 void loop() {
-  #ifndef SKIP_CMRI_FOR_TESTING
+  //#ifndef SKIP_CMRI_FOR_TESTING
   cmri.process();
-  #endif
+  return;
+  //#endif
 
   bool btn[24];
   readButtons(btn);
@@ -194,6 +199,10 @@ void loop() {
   }
   return;
   #endif
+
+  for (int i = 0; i < 24; i++) {
+    cmri.set_bit(i, btn[i]);
+  }
 
   bool rewrite_leds = false;
   for (int led = 0; led < LEDOUT_BITS; led++) {

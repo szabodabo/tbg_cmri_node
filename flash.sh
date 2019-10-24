@@ -34,7 +34,7 @@ mkdir /tmp/arduino_cache
 	-verbose \
 	/home/dakota/GoogleDrive/Train/hello_cmri/hello_cmri.ino
 
-$AVRDUDE -V -p m328p -c usbtiny -C "$ARDUINO/hardware/tools/avr/etc/avrdude.conf" \
+$AVRDUDE -p m328p -c usbtiny -C "$ARDUINO/hardware/tools/avr/etc/avrdude.conf" \
 	-U flash:w:$ARDUINO_BUILD/hello_cmri.ino.elf
 
 
